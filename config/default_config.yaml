@@ -30,7 +30,7 @@ max_core_number_decrease_percentage: 10
 
 # ARBITRITO MODES
 safe_mode_on: True # True => no real trades will be made; False => real trades will be made
-test_mode_on: True # (True => Corecito will run just once ; False => Corecito will run forever until stopped)
+test_mode_on: True # (True => Arbitrito will run just once ; False => Arbitrito will run forever until stopped)
 
 # LOOP SETTINGS
 seconds_between_iterations: 5
