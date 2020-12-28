@@ -12,6 +12,7 @@ Crypto arbitrage bot for "Crypto dot com" and "Kraken" exchanges
 pip3 install cryptocom.exchange
 pip3 install yaml
 pip3 install krakenex # it's recommended to install for the user -> pip3 install --user krakenex
+pip install python-binance
 ```
 
 ## Config
