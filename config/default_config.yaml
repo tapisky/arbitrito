@@ -1,28 +1,35 @@
 ---  # default config
 
 # APIs
-cryptocom_api_key: <your Crypto.com Exchange API key here>
-cryptocom_api_secret: <your Crypto.com Exchange API private key here>
-kraken_api_key: <your Kraken Exchange API key here>
-kraken_api_secret: <your Kraken Exchange API private key here>
-
+cdc_trading_pair: <your Crypto.com Exchange API key here>
+cdc_api_secret: <your Crypto.com Exchange API private key here>
+krk_api_key: <your Kraken Exchange API key here>
+krk_api_secret: <your Kraken Exchange API private key here>
+bnb_api_key: <your Binance Exchange API key here>
+bnb_api_secret: <your Binance Exchange API private key here>
 
 # CRYPTO.COM SETTINGS
-
+cdc_trading_pair: BTC_USDC # This must be one of the pairs listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/pairs.py
+cdc_base_currency: BTC # this must be one of the currencies listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/coins.py
+cdc_target_currency: USDC # this must be one of the currencies listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/coins.py
+cdc_max_decimals_buy: 6 # This is the limit Crypto.com has on ETH_BTC pair https://crypto.com/exchange/trade/spot/ETH_BTC
+cdc_max_decimals_target: 3
 
 
 # KRAKEN SETTINGS
+krk_trading_pair: XBTUSDC
+krk_base_currency: XXBT # this must be one of the currencies listed in https://api.kraken.com/0/public/Assets (key value, not the 'altname' value)
+krk_target_currency: USDC # this must be one of the currencies listed in https://api.kraken.com/0/public/Assets (key value, not the 'altname' value
+krk_max_decimals_buy: 6
+krk_max_decimals_target: 3
+
+# BINANCE SETTINGS
+bnb_trading_pair: BTCUSDC
+bnb_base_currency: BTC
+bnb_target_currency: USDC
+bnb_max_decimals_buy: 6
 
 
-
-
-# CORE NUMBER
-core_number: 2 # Ethers
-max_decimals_buy: 6 # This is the limit Crypto.com has on ETH_BTC pair https://crypto.com/exchange/trade/spot/ETH_BTC
-max_decimals_sell: 3
-trading_pair: ETH_BTC # This must be one of the pairs listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/pairs.py
-core_number_currency: ETH # this must be one of the currencies listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/coins.py
-base_currency: BTC # this must be one of the currencies listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/coins.py
 min_core_number_increase_percentage: 3
 max_core_number_increase_percentage: 10
 min_core_number_decrease_percentage: 3
@@ -30,7 +37,7 @@ max_core_number_decrease_percentage: 10
 
 # ARBITRITO MODES
 safe_mode_on: True # True => no real trades will be made; False => real trades will be made
-test_mode_on: True # (True => Corecito will run just once ; False => Corecito will run forever until stopped)
+test_mode_on: True # (True => Arbitrito will run just once ; False => Arbitrito will run forever until stopped)
 
 # LOOP SETTINGS
 seconds_between_iterations: 5
