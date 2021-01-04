@@ -40,7 +40,7 @@ bnb_max_decimals_sell: 6
 
 
 # ARBITRITO SETTINGS
-btc_amount_in_exchanges: 0.003606
+btc_amount_in_exchanges: 0
 
 # ARBITRITO MODES
 safe_mode_on: True # True => no real trades will be made; False => real trades will be made
