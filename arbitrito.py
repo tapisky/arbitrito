@@ -12,6 +12,7 @@ from cryptocom.exchange.structs import PrivateTrade
 import krakenex
 from binance.client import Client as Client
 
+# Wrapper for Binance API (helps getting through the recvWindow issue)
 class Binance:
     def __init__(self, public_key = '', secret_key = '', sync = False):
         self.time_offset = 0
@@ -37,6 +38,7 @@ async def main():
     opportunities_BTCDAI_250_KRK_BNB = 0
     opportunities_BTCDAI_50_BNB_KRK = 0
     opportunities_BTCDAI_50_KRK_BNB = 0
+
     config = get_config()
     logger = setupLogger('logfile.log')
 

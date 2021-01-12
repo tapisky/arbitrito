@@ -27,6 +27,7 @@ krk_target_currency: ZEUR # this must be one of the currencies listed in https:/
 krk_max_decimals_buy: 3
 krk_max_decimals_sell: 6
 
+
 # BINANCE SETTINGS
 bnb_trading_pair: BTCEUR
 bnb_trading_pair2: BTCDAI
@@ -36,6 +37,7 @@ bnb_base_currency: BTC
 bnb_target_currency: EUR
 bnb_max_decimals_buy: 6
 bnb_max_decimals_sell: 6
+
 
 # ARBITRITO SETTINGS
 trade_amount: 0.001 #BTC
