@@ -1,5 +1,5 @@
 # arbitrito ![Alt text](other/readme_header.png?raw=true "Title")
-Crypto arbitrage bot for "Crypto dot com" and "Kraken" exchanges
+A crypto arbitrage bot
 
 “Buy low, sell high” (Wall Street proverb)
 
@@ -10,7 +10,7 @@ Crypto arbitrage bot for "Crypto dot com" and "Kraken" exchanges
 
 ```
 pip3 install cryptocom.exchange
-pip3 install yaml
+pip3 install pyyaml
 pip3 install krakenex # it's recommended to install for the user -> pip3 install --user krakenex
 pip3 install python-binance
 ```

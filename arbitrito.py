@@ -5,6 +5,7 @@ import logging
 import yaml
 import sys
 import traceback
+
 import requests
 from os.path import exists
 import cryptocom.exchange as cro
@@ -14,6 +15,7 @@ import krakenex
 from binance.client import Client as Client
 from binance.exceptions import *
 
+# Wrapper for Binance API (helps getting through the recvWindow issue)
 class Binance:
     def __init__(self, public_key = '', secret_key = '', sync = False):
         self.time_offset = 0
@@ -31,6 +33,7 @@ class Binance:
 
 async def main():
     iteration = 0
+
     opportunities_bnb_krk_count = 0
     opportunities_bnb_cdc_count = 0
     opportunities_krk_bnb_count = 0
@@ -44,7 +47,6 @@ async def main():
     min_sell_trend = 0
     spread_avg = 0.0
     spread_avg_trend = 0
-
 
     config = get_config()
     logger = setupLogger('logfile.log')
@@ -73,7 +75,6 @@ async def main():
     # Binance API setup
     binance = Binance(public_key=config['bnb_api_key'], secret_key=config['bnb_api_secret'], sync=True)
     bnb_exchange = binance.b
-
 
     while True:
         try:
