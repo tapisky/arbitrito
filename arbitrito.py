@@ -93,56 +93,6 @@ async def main():
                 bnb_open_orders = bnb_exchange.get_open_orders(symbol=config['bnb_trading_pair'])
                 logger.info(f'Binance open trades: {bnb_open_orders}')
 
-                # now = time.time()
-                # for trade in trades:
-                #     if now - trade['time'] >= 1800.0:
-                #         if trade['exchange'] == 'krk' and trade['orderid'] in krk_open_orders:
-                #             # Cancel order in Kraken
-                #             tries = 10
-                #             success = False
-                #             while tries >= 0 and not success:
-                #                 try:
-                #                     tries = tries - 1
-                #                     result = krk_exchange.query_private('CancelOrder', {'txid': trade['orderid']})
-                #                     if result['result']:
-                #                         success = True
-                #                         logger.info(f"Limit order {trade['orderid']} in {trade['exchange']} not fulfilled within 20 minutes and has been cancelled")
-                #                         if config['telegram_notifications_on']:
-                #                             telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Opportunity of {trade['spread']} EUR >> Limit order {trade['orderid']} in {trade['exchange']} not fulfilled within 20 minutes and has been cancelled")
-                #                 except:
-                #                     # wait a few seconds before trying again
-                #                     await asyncio.sleep(5)
-                #                     continue
-                #         elif trade['exchange'] == 'bnb' and next((item for item in bnb_open_orders if item['orderId'] == trade['orderid']), None):
-                #             # Cancel order in Kraken
-                #             tries = 10
-                #             success = False
-                #             while tries >= 0 and not success:
-                #                 try:
-                #                     tries = tries - 1
-                #                     result = bnb_exchange.cancel_order(symbol='BTCEUR', orderId=trade['orderid'])
-                #                     if result:
-                #                         success = True
-                #                         logger.info(f"Limit order {trade['orderid']} in {trade['exchange']} not fulfilled within 20 minutes and has been cancelled")
-                #                         if config['telegram_notifications_on']:
-                #                             telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Opportunity of {trade['spread']} EUR >> Limit order {trade['orderid']} in {trade['exchange']} not fulfilled within 20 minutes and has been cancelled")
-                #                 except:
-                #                     # wait a few seconds before trying again
-                #                     await asyncio.sleep(5)
-                #                     continue
-
-                # Check Balances
-                # cdc_coin_base_currency = eval('cro.coins.' + config['cdc_base_currency'])
-                # cdc_target_currency = eval('cro.coins.' + config['cdc_target_currency'])
-                # cdc_balances = await cdc_account.get_balance()
-                # # Crypto.com: Get my base currency balance
-                # cdc_base_currency_balance = cdc_balances[cdc_coin_base_currency]
-                # cdc_base_currency_available = cdc_base_currency_balance.available
-                # # Get my Quote currency balance
-                # cdc_target_currency_balance = cdc_balances[cdc_target_currency]
-                # # EXAMPLE BTC_balance:Balance(total=0.04140678, available=3.243e-05, in_orders=0.04137435, in_stake=0, coin=Coin(name='BTC'))
-                # logger.info(f"Crypto.com's Balances\n(Base) {config['cdc_base_currency']} balance:{cdc_base_currency_balance} \n(Quote) {config['cdc_target_currency']} balance:{cdc_target_currency_balance}\n\n")
-
                 # Kraken: Get my balances
                 kraken_balances = get_kraken_balances(krk_exchange, config)
                 logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Quote) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
@@ -558,9 +508,6 @@ async def main():
                                         continue
                                 telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Current Volume: {str(fee_volume)} USD")
 
-                            # # Wait until limit orders are fulfilled
-                            # limit_orders_closed = await wait_for_orders(trades, config, krk_exchange, bnb_exchange, logger)
-
                             # Notify totals
                             # Kraken: Get my balances
                             kraken_balances = get_kraken_balances(krk_exchange, config)
@@ -596,76 +543,6 @@ async def main():
                                 opportunities_bnb_krk_count += 1
                             elif item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
                                 opportunities_krk_bnb_count += 1
-
-                            # # Notify balances
-                            # logger.info(f"Total balances after trades: BTC={str(total_base_after_trades)}  |  {config['bnb_target_currency']}={str(total_quote_after_trades)}")
-                            # if config['telegram_notifications_on']:
-                            #     telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Balance: BTC={str(total_base_after_trades)} | {config['bnb_target_currency']}={str(total_quote_after_trades)}")
-
-                            # # Get open orders
-                            # krk_open_orders = krk_exchange.query_private('OpenOrders')['result']['open']
-                            # bnb_open_orders = bnb_exchange.get_open_orders(symbol=bnb_trading_pair)
-                            #
-                            # if krk_open_orders and bnb_open_orders:
-                            #     # Cancel all orders on both exchanges after 30 seconds
-                            #     krk_result = krk_exchange.query_private('CancelAll')
-                            #     bnb_result = bnb_exchange.cancel_order(symbol=bnb_trading_pair, orderId=bnb_open_orders[0]['orderId'])
-                            #     # Send notification
-                            #     logger.info(f"Limit orders were not fulfilled within 30 seconds")
-                            #     if config['telegram_notifications_on']:
-                            #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Opportunity of {item['spread']} EUR but limit orders were not fulfilled")
-                            # elif not krk_open_orders and not bnb_open_orders:
-                            #     # Telegram notification
-                            #     if config['telegram_notifications_on']:
-                            #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Found a spreaderence of {item['spread']} EUR")
-                            #     # Kraken: Get my balances
-                            #     kraken_balances = get_kraken_balances(krk_exchange, config)
-                            #     logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Quote) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
-                            #
-                            #     # Binance: Get my balances
-                            #     binance_balances = get_binance_balances(bnb_exchange, config)
-                            #     logger.info(f"Binance's Balances\n(Base) {config['bnb_base_currency']} balance:{binance_balances['bnb_base_currency_available']} \n(Quote) {config['bnb_target_currency']} balance:{binance_balances['bnb_target_currency_available']}\n")
-                            #
-                            #     # Log total balances
-                            #     total_base_after_trades = float(kraken_balances['krk_base_currency_available']) + float(binance_balances['bnb_base_currency_available'])
-                            #     total_quote_after_trades = float(kraken_balances['krk_target_currency_available']) + float(binance_balances['bnb_target_currency_available'])
-                            #     # if config['telegram_notifications_on']:
-                            #     #     telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Total balances after trades: BTC={str(total_base_after_trades)}  |  EUR={str(total_quote_after_trades)}")
-                            #
-                            #     # Compute total spread after trades
-                            #     BTC_spread = total_base_after_trades - total_base
-                            #     EUR_spread = total_quote_after_trades - total_quote
-                            #     if BTC_spread < 0.0:
-                            #         logger.info(f"You lost {str(abs(BTC_spread))} BTC after the last operation")
-                            #         # if config['telegram_notifications_on']:
-                            #         #     telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> You lost {str(abs(BTC_spread))} BTC after the last operation")
-                            #     elif BTC_spread > 0.0:
-                            #         logger.info(f"You won {str(BTC_spread)} BTC after the last operation")
-                            #         # if config['telegram_notifications_on']:
-                            #         #     telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> You won {str(BTC_spread)} BTC after the last operation")
-                            #     if EUR_spread < 0.0:
-                            #         logger.info(f"You lost {str(abs(EUR_spread))} EUR after the last operation")
-                            #         if config['telegram_notifications_on']:
-                            #             telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> You lost {str(abs(EUR_spread))} EUR after the last operation")
-                            #     else:
-                            #         logger.info(f"You won {str(EUR_spread)} EUR after the last operation")
-                            #         if config['telegram_notifications_on']:
-                            #             telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> You won {str(EUR_spread)} EUR after the last operation")
-                            #
-                            #     # Notify balances
-                            #     logger.info(f"Total balances after trades: BTC={str(total_base_after_trades)}  |  EUR={str(total_quote_after_trades)}")
-                            #     if config['telegram_notifications_on']:
-                            #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Balance: BTC={str(total_base_after_trades)} | EUR={str(total_quote_after_trades)}")
-                            # elif krk_open_orders and not bnb_open_orders:
-                            #     # Cancel Kraken order???
-                            #     logger.info(f"Limit order fulfilled in Binance, but not in Kraken!")
-                            #     if config['telegram_notifications_on']:
-                            #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Opportunity of {item['spread']} EUR but limit order in Kraken not fulfilled!")
-                            # elif not krk_open_orders and bnb_open_orders:
-                            #     # Cancel Binance order???
-                            #     logger.info(f"Limit order fulfilled in Kraken, but not in Binance!")
-                            #     if config['telegram_notifications_on']:
-                            #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> Opportunity of {item['spread']} EUR but limit order in Binance not fulfilled!")
 
                         except Exception as e:
                             logger.info(traceback.format_exc())
