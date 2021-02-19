@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import print_function
 import asyncio
 import time
 import logging
@@ -14,6 +15,12 @@ from cryptocom.exchange.structs import PrivateTrade
 import krakenex
 from binance.client import Client as Client
 from binance.exceptions import *
+
+import pickle
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 
 # Wrapper for Binance API (helps getting through the recvWindow issue)
 class Binance:
@@ -56,6 +63,7 @@ async def main():
                   'DOTEUR': {'bnb_pair': 'DOTEUR', 'bnb_base': 'DOT', 'base': 'DOT', 'quote': 'ZEUR', 'krk_address': config['krk_dot_address']},
                   'LINKEUR': {'bnb_pair': 'LINKEUR', 'bnb_base': 'LINK', 'base': 'LINK', 'quote': 'ZEUR', 'krk_address': config['krk_link_address']},
                   'ADAEUR': {'bnb_pair': 'ADAEUR', 'bnb_base': 'ADA', 'base': 'ADA', 'quote': 'ZEUR', 'krk_address': config['krk_ada_address']}}
+                  # 'EURUSDT': {'bnb_pair': 'EURUSDT', 'bnb_base': 'EUR', 'base': 'ZEUR', 'quote': 'USDT', 'krk_address': config['krk_usdt_address']}}
 
     #Crypto.com API setup
     # cdc_exchange = cro.Exchange()
@@ -173,12 +181,13 @@ async def main():
                                 ################################################################################################################################################
                                 try:
                                     quantity = str(round(float(config['trade_amount_bnb']) / float(max_buy_price), 1))
-                                    result_krk = krk_exchange.query_private('AddOrder', {'pair': config['krk_trading_pair'], 'type': 'buy', 'ordertype': 'limit', 'oflags': 'fciq', 'price': str(round(float(min_sell_price) - 0.00001, 5)), 'volume': quantity})
+                                    result_krk = krk_exchange.query_private('AddOrder', {'pair': config['krk_trading_pair'], 'type': 'buy', 'ordertype': 'market', 'oflags': 'fciq', 'volume': quantity})
+                                    # result_krk = krk_exchange.query_private('AddOrder', {'pair': config['krk_trading_pair'], 'type': 'buy', 'ordertype': 'limit', 'oflags': 'fciq', 'price': min_sell_price, 'volume': quantity})
                                     if result_krk['error']:
                                         if config['telegram_notifications_on']:
                                             telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{config['bnb_trading_pair']}] Opportunity of {str(round(float(item['spread']), 5))} found! (Max buy {item['max_buy_price_key']} | Min sell {item['min_sell_price_key']} ). Error when placing limit order in {item['min_sell_price_key']}")
                                         raise Exception("Could not sell '{}' in pair '{}' for '{}' in Kraken: {}".format(config['trade_amount_bnb'], config['krk_trading_pair'], str(round(float(min_sell_price) - 0.0001, 5)), result_krk['error']))
-                                    result_bnb = bnb_exchange.order_limit_sell(symbol=config['bnb_trading_pair'], quantity=quantity, price=str(round(float(max_buy_price) + 0.0001, 5)))
+                                    result_bnb = bnb_exchange.order_limit_sell(symbol=config['bnb_trading_pair'], quantity=quantity, price=str(round(float(max_buy_price) + 0.00025, 5)))
                                     logger.info(result_krk)
                                     logger.info(result_bnb)
                                     trades.append({'exchange': 'krk', 'orderid': result_krk['result']['txid'][0], 'time': time.time(), 'spread': item['spread']})
@@ -263,6 +272,10 @@ async def main():
                                     candidate = {'pair': 'DOTEUR', 'spread': 1.0} # let's choose DOT as it's the one with highest market cap for now
                                     candidates.append(candidate)
 
+                                # candidates = []
+                                # candidate = {'pair': 'EURUSDT', 'spread': 1.0}
+                                # candidates.append(candidate)
+
                                 tries = 90
                                 success = False
                                 result_bnb = None
@@ -305,7 +318,9 @@ async def main():
                                             bnb_tickers = bnb_exchange.get_orderbook_tickers()
                                             bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == candidate['pair'])
                                             bnb_buy_price = bnb_ticker['bidPrice']
+                                            # quantity = round((fiat_amount / float(bnb_buy_price) - 0.005), info['filters'][2]['stepSize'].find('1') - 1) # get decimals from API
                                             quantity = round(fiat_amount / (float(bnb_buy_price) * 0.999995), info['filters'][2]['stepSize'].find('1') - 1) # get decimals from API
+                                            # result_bnb = bnb_exchange.order_limit_sell(symbol=candidate['pair'], quantity=bnb_fiat_currency_available, price=str(float(bnb_buy_price) + 0.0001))
                                             result_bnb = bnb_exchange.order_limit_buy(symbol=candidate['pair'], quantity=quantity, price=str(round(float(bnb_buy_price) * 0.999995, info['filters'][0]['tickSize'].find('1') - 1)))
                                             # result_bnb = bnb_exchange.order_market_buy(symbol=candidate['pair'], quantity=quantity)
                                             logger.info(result_bnb)
@@ -346,6 +361,7 @@ async def main():
                                     try:
                                         logger.info("Trying to withdraw 2nd pair from Binance...")
                                         tries -= 1
+                                        # bnb_balance_result = bnb_exchange.get_asset_balance(asset=pair_coins[candidates[0]['pair']]['quote'])
                                         bnb_balance_result = bnb_exchange.get_asset_balance(asset=pair_coins[candidates[0]['pair']]['bnb_base'])
                                         if bnb_balance_result:
                                             bnb_base_currency_available = bnb_balance_result['free'][0:bnb_balance_result['free'].find('.') + info['filters'][2]['stepSize'].find('1')]
@@ -354,6 +370,7 @@ async def main():
                                         if 'krk_address_memo' in pair_coins[candidates[0]['pair']]:
                                             withdrawal_result_bnb = bnb_exchange.withdraw(asset=pair_coins[candidates[0]['pair']]['bnb_base'], address=pair_coins[candidates[0]['pair']]['krk_address'], addressTag=pair_coins[candidates[0]['pair']]['krk_address_memo'], amount=bnb_base_currency_available)
                                         else:
+                                            # withdrawal_result_bnb = bnb_exchange.withdraw(asset=pair_coins[candidates[0]['pair']]['quote'], address=pair_coins[candidates[0]['pair']]['krk_address'], amount=bnb_base_currency_available)
                                             withdrawal_result_bnb = bnb_exchange.withdraw(asset=pair_coins[candidates[0]['pair']]['bnb_base'], address=pair_coins[candidates[0]['pair']]['krk_address'], amount=bnb_base_currency_available)
 
                                         if withdrawal_result_bnb['success']:
@@ -368,14 +385,16 @@ async def main():
 
                                 if not success:
                                     if config['telegram_notifications_on']:
+                                        # telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{pair_coins[candidates[0]['pair']]['quote']}] Error when withdrawing from Binance")
                                         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{pair_coins[candidates[0]['pair']]['bnb_base']}] Error when withdrawing from Binance")
                                     logger.info(traceback.format_exc())
-                                    raise Exception(f"[{pair_coins[candidates[0]['pair']]['bnb_base']}] Error when withdrawing from Binance")
+                                    raise Exception(f"[{pair_coins[candidates[0]['pair']]['quote']}] Error when withdrawing from Binance")
 
                                 ################################################################################################################################################
                                 # Step 6:
                                 # Wait for withdrawals
                                 ################################################################################################################################################
+                                # withdrawals_processed = await wait_for_withdrawals(krk_withdraw_refid, bnb_withdraw_id, config, krk_exchange, bnb_exchange, config['krk_base_currency'], pair_coins[candidates[0]['pair']]['quote'], logger)
                                 withdrawals_processed = await wait_for_withdrawals(krk_withdraw_refid, bnb_withdraw_id, config, krk_exchange, bnb_exchange, config['krk_base_currency'], pair_coins[candidates[0]['pair']]['base'], logger)
                                 if not withdrawals_processed:
                                     logger.info(f"Waited too long for Withdrawals/deposits\n")
@@ -412,19 +431,25 @@ async def main():
                                         logger.info("Trying to limit sell in Kraken...")
                                         tries -= 1
                                         # Get decimals info
+                                        # krk_info = krk_exchange.query_public('AssetPairs', {'pair': 'USDTEUR'})
+                                        # decimals = krk_info['result']['USDTEUR']['pair_decimals']
                                         krk_info = krk_exchange.query_public('AssetPairs', {'pair': candidates[0]['pair']})
                                         decimals = krk_info['result'][candidates[0]['pair']]['pair_decimals']
 
                                         krk_balance = krk_exchange.query_private('Balance')
                                         krk_base_currency_available = 0.0
+                                        # if 'USDT' in krk_balance['result']:
                                         if pair_coins[candidates[0]['pair']]['base'] in krk_balance['result']:
+                                            # krk_base_currency_available = krk_balance['result']['USDT']
                                             krk_base_currency_available = krk_balance['result'][pair_coins[candidates[0]['pair']]['base']]
                                         if float(krk_base_currency_available) < 5.0:
                                             success = True
                                             trades = []
                                         else:
+                                            # krk_tickers = krk_exchange.query_public("Ticker", {'pair': 'USDTEUR'})['result']['USDTEUR']
                                             krk_tickers = krk_exchange.query_public("Ticker", {'pair': candidates[0]['pair']})['result'][candidates[0]['pair']]
                                             krk_buy_price = krk_tickers['b'][0]
+                                            # price = (float(krk_buy_price) + 0.0001)
                                             price = round(float(krk_buy_price) * 1.0004, decimals)
                                             # krk_sell_price = krk_tickers['a'][0]
                                             # if trend >= 0:
@@ -435,8 +460,10 @@ async def main():
                                             #     price = round(float(bnb_buy_price) * 1.0005, 5)
                                             # else:
                                             #     price = round(float(krk_sell_price) * 1.0005, 5)
+                                            # result_krk = krk_exchange.query_private('AddOrder', {'pair': 'USDTEUR', 'type': 'sell', 'ordertype': 'limit', 'oflags': 'fciq', 'price': price, 'volume': krk_base_currency_available})
                                             result_krk = krk_exchange.query_private('AddOrder', {'pair': candidates[0]['pair'], 'type': 'sell', 'ordertype': 'limit', 'oflags': 'fciq', 'price': price, 'volume': krk_base_currency_available})
                                             logger.info(result_krk)
+                                            # trades.append({'exchange': 'krk', 'orderid': result_krk['result']['txid'][0], 'time': time.time(), 'spread': item['spread'], 'pair': 'USDTEUR'})
                                             trades.append({'exchange': 'krk', 'orderid': result_krk['result']['txid'][0], 'time': time.time(), 'spread': item['spread'], 'pair': candidate['pair']})
                                             limit_order_successful = await short_wait_for_krk_order(trades, config, krk_exchange, logger)
                                             success = limit_order_successful
@@ -458,7 +485,9 @@ async def main():
 
                                 if not success:
                                     if config['telegram_notifications_on']:
+                                        # telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [USDTEUR] Error when selling in Kraken")
                                         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{pair_coins[candidates[0]['pair']]['bnb_base']}] Error when selling in Kraken")
+                                    # raise Exception(f"[USDTEUR] Error when selling in Kraken")
                                     raise Exception(f"[{pair_coins[candidates[0]['pair']]['bnb_base']}] Error when selling in Kraken")
 
                             # elif item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
@@ -495,6 +524,7 @@ async def main():
                             #     logger.info(result)
                             #     trades.append({'exchange': 'bnb', 'orderid': result['orderId'], 'time': time.time(), 'spread': item['spread']})
 
+
                             # Notify Volume in Kraken
                             if config['telegram_notifications_on']:
                                 fee_volume = 0
@@ -512,6 +542,7 @@ async def main():
                             # Kraken: Get my balances
                             kraken_balances = get_kraken_balances(krk_exchange, config)
                             logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Quote) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
+
 
                             # Binance: Get my balances
                             binance_balances = get_binance_balances(bnb_exchange, config)
@@ -543,6 +574,18 @@ async def main():
                                 opportunities_bnb_krk_count += 1
                             elif item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
                                 opportunities_krk_bnb_count += 1
+
+                            fee_volume = 0
+                            for _ in range(5):
+                                try:
+                                    fee_volume = round(float(krk_exchange.query_private('TradeVolume')['result']['volume']), 2)
+                                    await asyncio.sleep(5)
+                                    break
+                                except:
+                                    continue
+
+                            # Update google sheet
+                            update_google_sheet(config['sheet_id'], config['range_name'], kraken_balances['krk_target_currency_available'], fee_volume)
 
                         except Exception as e:
                             logger.info(traceback.format_exc())
@@ -951,6 +994,8 @@ async def wait_for_withdrawals(withdrawal_id_krk, withdrawal_id_bnb, config, krk
     awaiting_deposits = True
     now = time.time()
     start_time = now
+    krk_success = []
+    bnb_success = []
     while now - start_time < config['deposits_max_wait'] and awaiting_deposits:
         logger.info(f"Waiting for deposits {str(int(now - start_time))} seconds")
         tries = 50
@@ -971,8 +1016,9 @@ async def wait_for_withdrawals(withdrawal_id_krk, withdrawal_id_bnb, config, krk
                 # wait a few seconds before trying again
                 await asyncio.sleep(5)
 
-        if krk_success[0]['status'] == 'Success' and bnb_success[0]['status'] == 1:
-            awaiting_deposits = False
+        if len(krk_success) > 0 and len(bnb_success) > 0:
+            if krk_success[0]['status'] == 'Success' and bnb_success[0]['status'] == 1:
+                awaiting_deposits = False
 
         if awaiting_deposits:
             await asyncio.sleep(10)
@@ -1001,6 +1047,60 @@ def get_candidates(krk_exchange, ticker_pairs):
     # Sort list by vwap ascending
     sorted_candidates = sorted(candidates, key=lambda k: k['spread'], reverse=True)
     return sorted_candidates
+    """Shows basic usage of the Sheets API.
+    Prints values from a sample spreadsheet.
+    """
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+    service = build('sheets', 'v4', credentials=creds)
+
+    # Call the Sheets API
+    sheet = service.spreadsheets()
+
+def update_google_sheet(sheet_id, data_range, balance, volume):
+
+    # How the input data should be interpreted.
+    value_input_option = 'USER_ENTERED'  # TODO: Update placeholder value.
+
+    # How the input data should be inserted.
+    insert_data_option = 'OVERWRITE'  # TODO: Update placeholder value.
+
+    data_value = str(time.localtime(time.time())[1]) + '/' + str(time.localtime(time.time())[2]) + '/' + str(time.localtime(time.time())[0])
+
+    value_range_body = {
+        "range": data_range,
+        "majorDimension": "ROWS",
+        "values": [
+            [data_value, balance],
+        ],
+    }
+
+    # append new balance and date
+    result = sheet.values().append(spreadsheetId=sheet_id,
+                                   range=data_range,
+                                   valueInputOption=value_input_option,
+                                   insertDataOption=insert_data_option,
+                                   body=value_range_body).execute()
+
+    value_range_body = {
+        "range": "Start_17_02_2021!F3:F3",
+        "majorDimension": "ROWS",
+        "values": [
+            [volume],
+        ],
+    }
+
+    # append
+    result = sheet.values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+                                   range="Start_17_02_2021!F3:F3",
+                                   valueInputOption=value_input_option,
+                                   body=value_range_body).execute()
 
 loop = asyncio.get_event_loop()
 try:
