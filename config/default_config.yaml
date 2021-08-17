@@ -1,12 +1,12 @@
----  # default config
+---  # user config
 
 # APIs
-cdc_api_key: <your Crypto.com Exchange API key here>
-cdc_api_secret: <your Crypto.com Exchange API private key here>
-krk_api_key: <your Kraken Exchange API key here>
-krk_api_secret: <your Kraken Exchange API private key here>
-bnb_api_key: <your Binance Exchange API key here>
-bnb_api_secret: <your Binance Exchange API private key here>
+cdc_api_key:
+cdc_api_secret:
+krk_api_key:
+krk_api_secret:
+bnb_api_key:
+bnb_api_secret:
 
 # CRYPTO.COM SETTINGS
 cdc_trading_pair: BTC_USDC # This must be one of the pairs listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/pairs.py
@@ -17,34 +17,46 @@ cdc_max_decimals_sell: 3
 
 
 # KRAKEN SETTINGS
-krk_trading_pair: XXBTZEUR
-krk_buy_trading_pair: XXBTZEUR
-krk_buy_trading_pair_step2: XXRPXXBT
-krk_buy_trading_pair_step3: XXRPZEUR
-krk_base_currency: XXBT # this must be one of the currencies listed in https://api.kraken.com/0/public/Assets (key value, not the 'altname' value)
+krk_trading_pair: XXRPZEUR
+krk_trading_pair2: XXLMZEUR
+krk_base_currency: XXRP # this must be one of the currencies listed in https://api.kraken.com/0/public/Assets (key value, not the 'altname' value)
 krk_target_currency: ZEUR # this must be one of the currencies listed in https://api.kraken.com/0/public/Assets (key value, not the 'altname' value
-krk_max_decimals_buy: 3
-krk_max_decimals_sell: 6
-krk_xrp_address: <your XRP address in Kraken>
-krk_xrp_address_tag: <your XRP address tag in Kraken>
-krk_bnb_xrp_address_key: <your XRP address key in Kraken to send XRP to Binance>
-
+krk_bnb_xrp_address_key:
+krk_usdt_address:
+krk_xlm_address:
+krk_xlm_address_memo:
+krk_dot_address:
+krk_link_address:
+krk_ada_address:
 
 # BINANCE SETTINGS
-bnb_trading_pair: BTCEUR
-bnb_buy_trading_pair: XRPBTC
-bnb_base_currency: BTC
+bnb_trading_pair: XRPEUR
+bnb_trading_pair2: XLMEUR
+bnb_base_currency: XRP
 bnb_target_currency: EUR
-bnb_max_decimals_buy: 6
-bnb_max_decimals_sell: 6
-
 
 # ARBITRITO SETTINGS
-btc_amount_in_exchanges: 0
+limit_spread_krk: False # If True, when selling in Kraken we will apply a reduction specified in reduction_rate_krk
+reduction_rate_krk: 1.0
+minimum_spread_krk: 1.0018
+maximum_spread_krk: 1.0018
+buy_adjust_rate_krk: 1.0
+minimum_spread_bnb: 1.0018
+trade_amount: 200.0 # EUR
+trade_amount_krk: 200.0 # EUR
+trade_amount_bnb: 200.0 # EUR
+limit_order_time: 7200.0 # This must be a float in seconds -> indicates how long Arbitrito will wait for a limit order to be filled before canceling it
+withdrawals_max_wait: 4500.0 # This must be a float in seconds -> indicates how long Arbitrito will wait for a withdrawals to be done before continuing
+deposits_max_wait: 600.0 # This must be a float in seconds -> indicates how long Arbitrito will wait for a deposit to be processed before continuing
 
 # ARBITRITO MODES
 safe_mode_on: True # True => no real trades will be made; False => real trades will be made
-test_mode_on: True # (True => Arbitrito will run just once ; False => Arbitrito will run forever until stopped)
+test_mode_on: True # True => Arbitrito will run just once ; False => Arbitrito will run forever until stopped
 
 # LOOP SETTINGS
 seconds_between_iterations: 5
+
+# TELEGRAM CONFIGURATION
+telegram_notifications_on: False
+telegram_bot_token:
+telegram_user_id: 
