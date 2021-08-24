@@ -149,94 +149,106 @@ async def main():
                 # # cdc_low = cdc_ticker.low
                 # logger.info(f'\nCRYPTO.COM => Market {cdc_pair.name}\nbuy price: {cdc_buy_price} - sell price: {cdc_sell_price}\n\n')
 
-                for tpair in trading_pairs:
-                    analyzed_pair = tpair
+                # for tpair in trading_pairs:
+                    # analyzed_pair = tpair
 
+                tpair = 'ADAUSDT'
+                krk_balance = krk_exchange.query_private('Balance')
+                krk_currency_available = 0.0
+                if pair_coins[tpair]['base'] in krk_balance['result']:
+                    krk_currency_available = krk_balance['result'][pair_coins[tpair]['base']]
 
-                    krk_balance = krk_exchange.query_private('Balance')
-                    krk_currency_available = 0.0
-                    if pair_coins[tpair]['base'] in krk_balance['result']:
-                        krk_currency_available = krk_balance['result'][pair_coins[tpair]['base']]
+                bnb_balance_result = bnb_exchange.get_asset_balance(asset=pair_coins[tpair]['quote'])
+                if bnb_balance_result:
+                    bnb_currency_available = bnb_balance_result['free']
+                else:
+                    bnb_currency_available = 0.0
 
-                    bnb_balance_result = bnb_exchange.get_asset_balance(asset=pair_coins[tpair]['quote'])
-                    if bnb_balance_result:
-                        bnb_currency_available = bnb_balance_result['free']
-                    else:
-                        bnb_currency_available = 0.0
+                # Kraken trading pair ticker
+                krk_tickers = krk_exchange.query_public("Ticker", {'pair': tpair})['result'][tpair]
+                krk_buy_price = krk_tickers['b'][0]
+                krk_sell_price = krk_tickers['a'][0]
+                # logger.info(f"\nKRAKEN => Market {tpair}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price}\n")
 
+                # Binance trading pair ticker
+                bnb_tickers = bnb_exchange.get_orderbook_tickers()
+                bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == tpair)
+                bnb_buy_price = bnb_ticker['bidPrice']
+                bnb_sell_price = bnb_ticker['askPrice']
+                # logger.info(f"\nBINANCE => Market {config['bnb_trading_pair']}\nbuy price: {bnb_buy_price} - sell price: {bnb_sell_price}\n")
+
+                print(float(bnb_currency_available))
+                print(float(krk_currency_available))
+                print(float(config['trade_amount_bnb']) / float(krk_buy_price))
+                # If balances not enough, raise exception
+                if (float(bnb_currency_available) < config['trade_amount']) or (float(krk_currency_available) < (float(config['trade_amount_bnb']) / float(krk_buy_price))):
+                # if float(kraken_balances['krk_target_currency_available']) < config['trade_amount'] or float(binance_balances['bnb_base_currency_available']) < (float(config['trade_amount_bnb']) / float(bnb_buy_price)):
+                    if config['telegram_notifications_on']:
+                        telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{tpair}] Not enough funds to start! (trade amount {config['trade_amount']})")
+                    raise Exception(f"[{tpair}] Not enough funds to start! (trade amount {config['trade_amount']})")
+
+                #
+                #     # Kraken trading pair ticker
+                #     krk_tickers = krk_exchange.query_public("Ticker", {'pair': tpair})['result'][tpair]
+                #     krk_buy_price = krk_tickers['b'][0]
+                #     krk_sell_price = krk_tickers['a'][0]
+                #     # logger.info(f"\nKRAKEN => Market {tpair}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price}\n")
+                #
+                #     # Binance trading pair ticker
+                #     bnb_tickers = bnb_exchange.get_orderbook_tickers()
+                #     bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == tpair)
+                #     bnb_buy_price = bnb_ticker['bidPrice']
+                #     bnb_sell_price = bnb_ticker['askPrice']
+                #
+                #     buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
+                #     # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
+                #     max_buy_price_key = max(buy_prices, key=buy_prices.get)
+                #     max_buy_price = buy_prices[max_buy_price_key]
+                #     sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
+                #     # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
+                #     min_sell_price_key = min(sell_prices, key=sell_prices.get)
+                #     min_sell_price = sell_prices[min_sell_price_key]
+                #     # logger.info(f"Max buy price -> {max_buy_price_key} = {max_buy_price}")
+                #     # logger.info(f"Min sell price -> {min_sell_price_key} = {min_sell_price}")
+                #     spread = round(float(max_buy_price) / float(min_sell_price), 8)
+                #     logger.info(f"[{tpair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
+                #
+                #     item = {'pair': tpair, 'spread': spread, 'trading_pair_config_suffix': '', 'max_buy_price_key': max_buy_price_key, 'min_sell_price_key': min_sell_price_key}
+                #     # Create list of potential opportunities
+                #     # opportunity_list = {'spread': spread, 'trading_pair_config_suffix': '', 'max_buy_price_key': max_buy_price_key, 'min_sell_price_key': min_sell_price_key}
+                #                         # {'spread': spread2, 'trading_pair_config_suffix': '2', 'max_buy_price_key': max_buy_price_key2, 'min_sell_price_key': min_sell_price_key2}]
+                #     # Sort list by spread descending
+                #     # sorted_opportunity_list = sorted(opportunity_list, key=lambda k: k['spread'], reverse=True)
+                #
+                #     # Prnt sorted_opportunity_list for reference
+                #     # logger.info("Sorted Opportunity list:\n")
+                #     # for item in sorted_opportunity_list:
+                #     #     logger.info(f'{item}')
+                #
+                #     if item['spread'] > config['minimum_spread']:
+                #     # if (item['spread'] > config['minimum_spread_krk'] and item['max_buy_price_key'] == 'krk') or (item['spread'] >= config['minimum_spread_bnb'] and item['max_buy_price_key'] == 'bnb'):
+                #         opportunity_found = True
+                #         break
+                item = {'pair': 'ADAUSDT', 'spread': 1.00155, 'trading_pair_config_suffix': '', 'max_buy_price_key': 'krk', 'min_sell_price_key': 'bnb'}
+                trend_6 = get_trend(3, krk_exchange, 'ADAUSDT', logger)
+                trend_3 = get_trend(2, krk_exchange, 'ADAUSDT', logger)
+                logger.info(f"Trend_6 = {trend_6}")
+                logger.info(f"Trend_3 = {trend_3}")
+                if abs(trend_6) >= 2 and abs(trend_3) > 0:
+                    opportunity_found = True
                     # Kraken trading pair ticker
-                    krk_tickers = krk_exchange.query_public("Ticker", {'pair': tpair})['result'][tpair]
-                    krk_buy_price = krk_tickers['b'][0]
+                    krk_tickers = krk_exchange.query_public("Ticker", {'pair': 'ADAUSDT'})['result'][tpair]
+                    max_buy_price = krk_tickers['b'][0]
                     krk_sell_price = krk_tickers['a'][0]
-                    # logger.info(f"\nKRAKEN => Market {tpair}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price}\n")
 
-                    # Binance trading pair ticker
-                    bnb_tickers = bnb_exchange.get_orderbook_tickers()
-                    bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == tpair)
-                    bnb_buy_price = bnb_ticker['bidPrice']
-                    bnb_sell_price = bnb_ticker['askPrice']
-                    # logger.info(f"\nBINANCE => Market {config['bnb_trading_pair']}\nbuy price: {bnb_buy_price} - sell price: {bnb_sell_price}\n")
-
-                    print(float(bnb_currency_available))
-                    print(float(krk_currency_available))
-                    print(float(config['trade_amount_bnb']) / float(krk_buy_price))
-                    # If balances not enough, raise exception
-                    if (float(bnb_currency_available) < config['trade_amount']) or (float(krk_currency_available) < (float(config['trade_amount_bnb']) / float(krk_buy_price))):
-                    # if float(kraken_balances['krk_target_currency_available']) < config['trade_amount'] or float(binance_balances['bnb_base_currency_available']) < (float(config['trade_amount_bnb']) / float(bnb_buy_price)):
-                        if config['telegram_notifications_on']:
-                            telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{tpair}] Not enough funds to start! (trade amount {config['trade_amount']})")
-                        raise Exception(f"[{tpair}] Not enough funds to start! (trade amount {config['trade_amount']})")
-
-
-                    # Kraken trading pair ticker
-                    krk_tickers = krk_exchange.query_public("Ticker", {'pair': tpair})['result'][tpair]
-                    krk_buy_price = krk_tickers['b'][0]
-                    krk_sell_price = krk_tickers['a'][0]
-                    # logger.info(f"\nKRAKEN => Market {tpair}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price}\n")
-
-                    # Binance trading pair ticker
-                    bnb_tickers = bnb_exchange.get_orderbook_tickers()
-                    bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == tpair)
-                    bnb_buy_price = bnb_ticker['bidPrice']
-                    bnb_sell_price = bnb_ticker['askPrice']
-
-                    buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
-                    # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
-                    max_buy_price_key = max(buy_prices, key=buy_prices.get)
-                    max_buy_price = buy_prices[max_buy_price_key]
-                    sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
-                    # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
-                    min_sell_price_key = min(sell_prices, key=sell_prices.get)
-                    min_sell_price = sell_prices[min_sell_price_key]
-                    # logger.info(f"Max buy price -> {max_buy_price_key} = {max_buy_price}")
-                    # logger.info(f"Min sell price -> {min_sell_price_key} = {min_sell_price}")
-                    spread = round(float(max_buy_price) / float(min_sell_price), 8)
-                    logger.info(f"[{tpair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
-
-                    item = {'pair': tpair, 'spread': spread, 'trading_pair_config_suffix': '', 'max_buy_price_key': max_buy_price_key, 'min_sell_price_key': min_sell_price_key}
-                    # Create list of potential opportunities
-                    # opportunity_list = {'spread': spread, 'trading_pair_config_suffix': '', 'max_buy_price_key': max_buy_price_key, 'min_sell_price_key': min_sell_price_key}
-                                        # {'spread': spread2, 'trading_pair_config_suffix': '2', 'max_buy_price_key': max_buy_price_key2, 'min_sell_price_key': min_sell_price_key2}]
-                    # Sort list by spread descending
-                    # sorted_opportunity_list = sorted(opportunity_list, key=lambda k: k['spread'], reverse=True)
-
-                    # Prnt sorted_opportunity_list for reference
-                    # logger.info("Sorted Opportunity list:\n")
-                    # for item in sorted_opportunity_list:
-                    #     logger.info(f'{item}')
-
-                    if item['spread'] > config['minimum_spread']:
-                    # if (item['spread'] > config['minimum_spread_krk'] and item['max_buy_price_key'] == 'krk') or (item['spread'] >= config['minimum_spread_bnb'] and item['max_buy_price_key'] == 'bnb'):
-                        opportunity_found = True
-                        break
-
-                if opportunity_found and not config['safe_mode_on']:
+                if opportunity_found and not config['safe_mode_on'] and trend_6 > 0:
                     try:
                         # Set trading pair accordingly
                         # bnb_trading_pair = config['bnb_trading_pair' + item['trading_pair_config_suffix']]
                         # krk_trading_pair = config['krk_trading_pair' + item['trading_pair_config_suffix']]
 
-                        if item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
+                        # if item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
+                        if True:
                             ################################################################################################################################################
                             # Step 1:
                             # Limit orders (sell bnb_trading_pair in Binance and buy krk_trading_pair in Kraken, but first in Kraken since the exchange is slower)
@@ -278,7 +290,10 @@ async def main():
                                 #
                                 for _ in range(10):
                                     try:
-                                        result_krk = krk_exchange.query_private('AddOrder', {'pair': item['pair'], 'type': 'sell', 'ordertype': 'limit', 'oflags': 'fciq', 'price': str(float(max_buy_price) + 0.000001)[0:str(float(max_buy_price) + 0.000001).find('.') + 7], 'volume': quantity}) #ADA
+                                        # if trend_6 > 0:
+                                        result_krk = krk_exchange.query_private('AddOrder', {'pair': item['pair'], 'type': 'sell', 'ordertype': 'limit', 'oflags': 'fciq', 'price': str(round(float(max_buy_price) * 1.00155, 6))[0:str(round(float(max_buy_price) * 1.00155, 6)).find('.') + 7], 'volume': quantity}) #ADA
+                                        # else:
+                                            # result_krk = krk_exchange.query_private('AddOrder', {'pair': item['pair'], 'type': 'sell', 'ordertype': 'limit', 'oflags': 'fciq', 'price': str(float(max_buy_price) + 0.000001)[0:str(float(max_buy_price) + 0.000001).find('.') + 7], 'volume': quantity}) #ADA
                                         if result_krk['result']:
                                             logger.info(result_krk)
                                             trades.append({'exchange': 'krk', 'orderid': result_krk['result']['txid'][0], 'time': time.time(), 'spread': item['spread']})
@@ -299,7 +314,7 @@ async def main():
                                 # result_bnb = bnb_exchange.order_limit_buy(symbol=item['pair'], quantity=quantity_bnb, price=str(float(min_sell_price) * 0.99899)[0:str(float(min_sell_price) * 0.99899).find('.') + 5]) #DOT with rate
                                 for _ in range(10):
                                     try:
-                                        result_bnb = bnb_exchange.order_limit_buy(symbol=item['pair'], quantity=quantity_bnb, price=str(round(float(min_sell_price) - 0.00095, 5))) #ADA
+                                        result_bnb = bnb_exchange.order_limit_buy(symbol=item['pair'], quantity=quantity_bnb, price=str(round(float(max_buy_price) - 0.0007, 5))) #ADA
                                         logger.info(result_bnb)
                                         trades.append({'exchange': 'bnb', 'orderid': result_bnb['orderId'], 'time': time.time(), 'spread': item['spread']})
                                         break
@@ -549,7 +564,8 @@ async def main():
                                         bnb_base_currency_available = bnb_balance_result['free'][0:bnb_balance_result['free'].find('.') + info['filters'][2]['stepSize'].find('1')]
                                     else:
                                         bnb_base_currency_available = 0.0
-                                    withdrawal_result_bnb = bnb_exchange.withdraw(asset=pair_coins[item['pair']]['base'], address=pair_coins[item['pair']]['bnb_krk_address'], amount=bnb_base_currency_available)
+                                    withdrawal_result_bnb = bnb_exchange.withdraw(asset=pair_coins[item['pair']]['base'], address=pair_coins[item['pair']]['bnb_krk_address'], amount=quantity_bnb)
+                                    # withdrawal_result_bnb = bnb_exchange.withdraw(asset=pair_coins[item['pair']]['base'], address=pair_coins[item['pair']]['bnb_krk_address'], amount=bnb_base_currency_available)
 
                                     if withdrawal_result_bnb['success']:
                                         logger.info(withdrawal_result_bnb)
@@ -1267,9 +1283,9 @@ async def main():
                 #         continue
                 # logger.info(f'New Volume -> {str(fee_volume)}')
 
-                if spread > config['minimum_spread'] and max_buy_price_key == 'krk':
-                    if config['telegram_notifications_on']:
-                        telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{analyzed_pair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
+                # if spread > config['minimum_spread'] and max_buy_price_key == 'krk':
+                #     if config['telegram_notifications_on']:
+                #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{analyzed_pair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
 
                 #Analize other pairs
                 # for cpair in pairs.keys():
@@ -1331,64 +1347,64 @@ async def main():
                 await asyncio.sleep(config['seconds_between_iterations'])
 
         except Exception as e:
-            buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
-            max_buy_price_key = max(buy_prices, key=buy_prices.get)
-            max_buy_price = buy_prices[max_buy_price_key]
-            sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
-            min_sell_price_key = min(sell_prices, key=sell_prices.get)
-            min_sell_price = sell_prices[min_sell_price_key]
-            spread = round(float(max_buy_price) / float(min_sell_price), 8)
-            logger.info(f"[{analyzed_pair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
-
-            if spread > config['minimum_spread'] and max_buy_price_key == 'krk':
-                if config['telegram_notifications_on']:
-                    telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{analyzed_pair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
-
-            try:
-                #Analize other pairs
-                for cpair in pairs.keys():
-                    # Kraken trading pair ticker
-                    if cpair == 'XRPEUR':
-                        the_pair = "XXRPZEUR"
-                    else:
-                        the_pair = cpair
-                    krk_tickers = krk_exchange.query_public("Ticker", {'pair': the_pair})['result'][the_pair]
-                    krk_buy_price = krk_tickers['b'][0]
-                    krk_sell_price = krk_tickers['a'][0]
-                    # logger.info(f"\nKRAKEN => Market {item['pair']}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price}\n")
-
-                    # Binance trading pair ticker
-                    bnb_tickers = bnb_exchange.get_orderbook_tickers()
-                    bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == cpair)
-                    bnb_buy_price = bnb_ticker['bidPrice']
-                    bnb_sell_price = bnb_ticker['askPrice']
-                    # logger.info(f"\nBINANCE => Market {config['cpair']}\nbuy price: {bnb_buy_price} - sell price: {bnb_sell_price}\n")
-
-                    buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
-                    # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
-                    max_buy_price_key = max(buy_prices, key=buy_prices.get)
-                    max_buy_price = buy_prices[max_buy_price_key]
-                    sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
-                    # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
-                    min_sell_price_key = min(sell_prices, key=sell_prices.get)
-                    min_sell_price = sell_prices[min_sell_price_key]
-                    # logger.info(f"Max buy price -> {max_buy_price_key} = {max_buy_price}")
-                    # logger.info(f"Min sell price -> {min_sell_price_key} = {min_sell_price}")
-                    spread = round(float(max_buy_price) / float(min_sell_price), 8)
-                    logger.info(f"[{cpair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
-                    if spread > config['minimum_spread']:
-                        if max_buy_price_key == 'krk':
-                            # pairs[cpair]['bnb_krk'] += 1
-                        # else:
-                            pairs[cpair]['krk_bnb'] += 1
-                            if config['telegram_notifications_on'] and max_buy_price_key== 'krk':
-                                telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{cpair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
-
-                for key, value in pairs.items():
-                    # logger.info(f"{key} BNB_KRK = {value['bnb_krk']}")
-                    logger.info(f"{key} KRK_BNB = {value['krk_bnb']}")
-            except:
-                continue
+            # buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
+            # max_buy_price_key = max(buy_prices, key=buy_prices.get)
+            # max_buy_price = buy_prices[max_buy_price_key]
+            # sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
+            # min_sell_price_key = min(sell_prices, key=sell_prices.get)
+            # min_sell_price = sell_prices[min_sell_price_key]
+            # spread = round(float(max_buy_price) / float(min_sell_price), 8)
+            # logger.info(f"[{analyzed_pair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
+            #
+            # if spread > config['minimum_spread'] and max_buy_price_key == 'krk':
+            #     if config['telegram_notifications_on']:
+            #         telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{analyzed_pair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
+            #
+            # try:
+            #     #Analize other pairs
+            #     for cpair in pairs.keys():
+            #         # Kraken trading pair ticker
+            #         if cpair == 'XRPEUR':
+            #             the_pair = "XXRPZEUR"
+            #         else:
+            #             the_pair = cpair
+            #         krk_tickers = krk_exchange.query_public("Ticker", {'pair': the_pair})['result'][the_pair]
+            #         krk_buy_price = krk_tickers['b'][0]
+            #         krk_sell_price = krk_tickers['a'][0]
+            #         # logger.info(f"\nKRAKEN => Market {item['pair']}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price}\n")
+            #
+            #         # Binance trading pair ticker
+            #         bnb_tickers = bnb_exchange.get_orderbook_tickers()
+            #         bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == cpair)
+            #         bnb_buy_price = bnb_ticker['bidPrice']
+            #         bnb_sell_price = bnb_ticker['askPrice']
+            #         # logger.info(f"\nBINANCE => Market {config['cpair']}\nbuy price: {bnb_buy_price} - sell price: {bnb_sell_price}\n")
+            #
+            #         buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
+            #         # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
+            #         max_buy_price_key = max(buy_prices, key=buy_prices.get)
+            #         max_buy_price = buy_prices[max_buy_price_key]
+            #         sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
+            #         # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
+            #         min_sell_price_key = min(sell_prices, key=sell_prices.get)
+            #         min_sell_price = sell_prices[min_sell_price_key]
+            #         # logger.info(f"Max buy price -> {max_buy_price_key} = {max_buy_price}")
+            #         # logger.info(f"Min sell price -> {min_sell_price_key} = {min_sell_price}")
+            #         spread = round(float(max_buy_price) / float(min_sell_price), 8)
+            #         logger.info(f"[{cpair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
+            #         if spread > config['minimum_spread']:
+            #             if max_buy_price_key == 'krk':
+            #                 # pairs[cpair]['bnb_krk'] += 1
+            #             # else:
+            #                 pairs[cpair]['krk_bnb'] += 1
+            #                 if config['telegram_notifications_on'] and max_buy_price_key== 'krk':
+            #                     telegram_bot_sendtext(config['telegram_bot_token'], config['telegram_user_id'], f"<Arbitrito> [{cpair}] Max(buy price {max_buy_price_key}) / Min(sell price {min_sell_price_key}) = {spread}\n")
+            #
+            #     for key, value in pairs.items():
+            #         # logger.info(f"{key} BNB_KRK = {value['bnb_krk']}")
+            #         logger.info(f"{key} KRK_BNB = {value['krk_bnb']}")
+            # except:
+            #     continue
 
             logger.info(traceback.format_exc())
             # Network issue(s) occurred (most probably). Jumping to next iteration
@@ -1712,6 +1728,25 @@ async def wait_for_withdrawals(withdrawal_id_krk, withdrawal_id_bnb, config, krk
 
     return not awaiting_deposits
 
+def get_trend(ncandles, krk_exchange, pair, logger):
+    for _ in range(20):
+        try:
+            ohlc = krk_exchange.query_public('OHLC', {'pair': pair, 'interval': '5'})['result'][pair][ncandles*-1:]
+            break
+        except:
+            logger.info(traceback.format_exc())
+            continue
+    trend = 0
+    vwap = float(ohlc[0][5])
+    for item in ohlc:
+        if float(item[5]) != 0.0:
+            if float(item[5]) < vwap:
+                trend -= 1
+            elif float(item[5]) > vwap:
+                trend += 1
+            vwap = float(item[5])
+
+    return trend
 
 def get_candidates(krk_exchange, ticker_pairs):
     candidates = []
