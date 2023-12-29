@@ -18,6 +18,7 @@ cdc_max_decimals_sell: 3
 
 # KRAKEN SETTINGS
 krk_trading_pair: XXBTZEUR
+krk_trading_pair2: XBTDAI
 krk_buy_trading_pair: XXBTZEUR
 krk_buy_trading_pair_step2: XXRPXXBT
 krk_buy_trading_pair_step3: XXRPZEUR
@@ -25,14 +26,13 @@ krk_base_currency: XXBT # this must be one of the currencies listed in https://a
 krk_target_currency: ZEUR # this must be one of the currencies listed in https://api.kraken.com/0/public/Assets (key value, not the 'altname' value
 krk_max_decimals_buy: 3
 krk_max_decimals_sell: 6
-krk_xrp_address: <your XRP address in Kraken>
-krk_xrp_address_tag: <your XRP address tag in Kraken>
-krk_bnb_xrp_address_key: <your XRP address key in Kraken to send XRP to Binance>
 
 
 # BINANCE SETTINGS
 bnb_trading_pair: BTCEUR
+bnb_trading_pair2: BTCDAI
 bnb_buy_trading_pair: XRPBTC
+bnb_buy_trading_pair_step3: XRPEUR
 bnb_base_currency: BTC
 bnb_target_currency: EUR
 bnb_max_decimals_buy: 6
@@ -40,11 +40,11 @@ bnb_max_decimals_sell: 6
 
 
 # ARBITRITO SETTINGS
-btc_amount_in_exchanges: 0
+trade_amount: 0.001 #BTC
 
 # ARBITRITO MODES
 safe_mode_on: True # True => no real trades will be made; False => real trades will be made
-test_mode_on: True # (True => Arbitrito will run just once ; False => Arbitrito will run forever until stopped)
+test_mode_on: True # True => Arbitrito will run just once ; False => Arbitrito will run forever until stopped
 
 # LOOP SETTINGS
 seconds_between_iterations: 5

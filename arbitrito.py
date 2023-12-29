@@ -30,8 +30,15 @@ class Binance:
 
 async def main():
     iteration = 0
-    opportunities175 = 0
-    opportunities120 = 0
+    opportunities_BTCEUR_250_BNB_KRK = 0
+    opportunities_BTCEUR_250_KRK_BNB = 0
+    opportunities_BTCEUR_50_BNB_KRK = 0
+    opportunities_BTCEUR_50_KRK_BNB = 0
+    opportunities_BTCDAI_250_BNB_KRK = 0
+    opportunities_BTCDAI_250_KRK_BNB = 0
+    opportunities_BTCDAI_50_BNB_KRK = 0
+    opportunities_BTCDAI_50_KRK_BNB = 0
+
     config = get_config()
     logger = setupLogger('logfile.log')
 
@@ -50,198 +57,240 @@ async def main():
     while True:
         try:
             iteration += 1
-            print(f'------------ Iteration {iteration} ------------')
-            # Check Balances
-            # cdc_coin_base_currency = eval('cro.coins.' + config['cdc_base_currency'])
-            # cdc_target_currency = eval('cro.coins.' + config['cdc_target_currency'])
-            # cdc_balances = await cdc_account.get_balance()
-            # Crypto.com: Get my base currency balance
-            # cdc_base_currency_balance = cdc_balances[cdc_coin_base_currency]
-            # cdc_base_currency_available = cdc_base_currency_balance.available
-            # Get my Target currency balance
-            # cdc_target_currency_balance = cdc_balances[cdc_target_currency]
-            # EXAMPLE BTC_balance:Balance(total=0.04140678, available=3.243e-05, in_orders=0.04137435, in_stake=0, coin=Coin(name='BTC'))
-            # logger.info(f"Crypto.com's Balances\n(Base) {config['cdc_base_currency']} balance:{cdc_base_currency_balance} \n(Target) {config['cdc_target_currency']} balance:{cdc_target_currency_balance}\n\n")
+            logger.info(f'------------ Iteration {iteration} ------------')
 
-            # Kraken: Get my base currency balance
-            krk_balance = krk_exchange.query_private('Balance')
-            krk_base_currency_available = 0
-            if config['krk_base_currency'] in krk_balance['result']:
-                krk_base_currency_available = krk_balance['result'][config['krk_base_currency']]
-            # Kraken: Get my target currency balance
-            krk_target_currency_available = 0
-            if config['krk_target_currency'] in krk_balance['result']:
-                krk_target_currency_available = krk_balance['result'][config['krk_target_currency']]
-            logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{krk_base_currency_available} \n(Target) {config['krk_target_currency']} balance:{krk_target_currency_available}\n")
+            # Check first if exchanges are both up
+            exchanges_are_up = exchanges_up(krk_exchange, bnb_exchange)
 
-            # Binance: Get my base currency balance
-            bnb_btc_balance_result = bnb_exchange.get_asset_balance(asset=config['bnb_base_currency'])
-            if bnb_btc_balance_result:
-                bnb_btc_balance = float(bnb_btc_balance_result['free'])
-            else:
-                bnb_btc_balance = 0.0
-            logger.info(f"Binance's Balances\nBTC balance:{bnb_btc_balance} \n")
+            if exchanges_are_up:
+                # Check Balances
+                # cdc_coin_base_currency = eval('cro.coins.' + config['cdc_base_currency'])
+                # cdc_target_currency = eval('cro.coins.' + config['cdc_target_currency'])
+                # cdc_balances = await cdc_account.get_balance()
+                # Crypto.com: Get my base currency balance
+                # cdc_base_currency_balance = cdc_balances[cdc_coin_base_currency]
+                # cdc_base_currency_available = cdc_base_currency_balance.available
+                # Get my Target currency balance
+                # cdc_target_currency_balance = cdc_balances[cdc_target_currency]
+                # EXAMPLE BTC_balance:Balance(total=0.04140678, available=3.243e-05, in_orders=0.04137435, in_stake=0, coin=Coin(name='BTC'))
+                # logger.info(f"Crypto.com's Balances\n(Base) {config['cdc_base_currency']} balance:{cdc_base_currency_balance} \n(Target) {config['cdc_target_currency']} balance:{cdc_target_currency_balance}\n\n")
 
-            # Check target currency price differences in exchanges
-            # Crypto.com target currency ticker
-            # cdc_tickers = await cdc_exchange.get_tickers()
-            # cdc_ticker = cdc_tickers[cdc_pair]
-            # cdc_buy_price = cdc_ticker.buy_price
-            # cdc_sell_price = cdc_ticker.sell_price
-            # cdc_high = cdc_ticker.high
-            # cdc_low = cdc_ticker.low
-            # logger.info(f'\nCRYPTO.COM => Market {cdc_pair.name}\nbuy price: {cdc_buy_price} - sell price: {cdc_sell_price} <> low: {cdc_low} - high: {cdc_high}\n\n')
+                # Kraken: Get my balances
+                kraken_balances = get_kraken_balances(krk_exchange, config)
+                logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Target) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
 
-            # Kraken trading pair ticker
-            krk_tickers = krk_exchange.query_public("Ticker", {'pair': config['krk_trading_pair']})['result'][config['krk_trading_pair']]
-            krk_buy_price = krk_tickers['b'][0]
-            krk_sell_price = krk_tickers['a'][0]
-            krk_high = krk_tickers['h'][0]
-            krk_low = krk_tickers['l'][0]
-            logger.info(f"\nKRAKEN => Market {config['krk_trading_pair']}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price} <> low: {krk_low} - high: {krk_high}\n")
+                # Binance: Get my balances
+                binance_balances = get_binance_balances(bnb_exchange, config)
+                logger.info(f"Binance's Balances\n(Base) {config['bnb_base_currency']} balance:{binance_balances['bnb_base_currency_available']} \n(Target) {config['bnb_target_currency']} balance:{binance_balances['bnb_target_currency_available']}\n")
 
-            # Binance trading pair ticker
-            bnb_tickers = bnb_exchange.get_orderbook_tickers()
-            bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == config['bnb_trading_pair'])
-            bnb_buy_price = bnb_ticker['bidPrice']
-            bnb_sell_price = bnb_ticker['askPrice']
-            logger.info(f"\nBINANCE => Market {config['bnb_trading_pair']}\nbuy price: {bnb_buy_price} - sell price: {bnb_sell_price}\n")
+                # Log total balances
+                total_BTC = float(kraken_balances['krk_base_currency_available']) + float(binance_balances['bnb_base_currency_available'])
+                total_EUR = float(kraken_balances['krk_target_currency_available']) + float(binance_balances['bnb_target_currency_available'])
+                logger.info(f"Total balances: BTC={str(total_BTC)}  |  EUR={str(total_EUR)}")
 
-            buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
-            # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
-            max_buy_price_key = max(buy_prices, key=buy_prices.get)
-            max_buy_price = buy_prices[max_buy_price_key]
-            sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
-            # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
-            min_sell_price_key = min(sell_prices, key=sell_prices.get)
-            min_sell_price = sell_prices[min_sell_price_key]
-            logger.info(f"Max buy price -> {max_buy_price_key} = {max_buy_price}")
-            logger.info(f"Min sell price -> {min_sell_price_key} = {min_sell_price}")
-            logger.info(f"Max(buy price) - Min(sell price) = {float(max_buy_price) - float(min_sell_price)}\n")
+                # Check target currency price differences in exchanges
+                # Crypto.com target currency ticker
+                # cdc_tickers = await cdc_exchange.get_tickers()
+                # cdc_ticker = cdc_tickers[cdc_pair]
+                # cdc_buy_price = cdc_ticker.buy_price
+                # cdc_sell_price = cdc_ticker.sell_price
+                # cdc_high = cdc_ticker.high
+                # cdc_low = cdc_ticker.low
+                # logger.info(f'\nCRYPTO.COM => Market {cdc_pair.name}\nbuy price: {cdc_buy_price} - sell price: {cdc_sell_price} <> low: {cdc_low} - high: {cdc_high}\n\n')
 
-            diff = (float(max_buy_price) - float(min_sell_price))
-            if diff >= 175.0:
-                opportunities175 += 1
-                if max_buy_price_key == 'bnb' and min_sell_price_key == 'krk' and not config['safe_mode_on']:
-                    try:
-                        # Market order to buy XRP with BTC in Binance
-                        result = bnb_exchange.order_market_buy(symbol=config['bnb_buy_trading_pair'], quoteOrderQty=bnb_btc_balance)
-                        if result:
-                            if result['status'] != "FILLED":
-                                raise Exception("Could not sell BTC for XRP in Binance: {}".format(result))
-                        else:
-                            raise Exception("Could not sell BTC for XRP in Binance. 'result' is empty!")
-                        logger.info(result)
+                # Kraken trading pair ticker
+                krk_tickers = krk_exchange.query_public("Ticker", {'pair': config['krk_trading_pair']})['result'][config['krk_trading_pair']]
+                krk_buy_price = krk_tickers['b'][0]
+                krk_sell_price = krk_tickers['a'][0]
+                krk_high = krk_tickers['h'][0]
+                krk_low = krk_tickers['l'][0]
+                logger.info(f"\nKRAKEN => Market {config['krk_trading_pair']}\nbuy price: {krk_buy_price} - sell price: {krk_sell_price} <> low: {krk_low} - high: {krk_high}\n")
 
-                        # Market order to buy the same amount of BTC with EUR in Kraken
-                        result = krk_exchange.query_private('AddOrder', {'pair': config['krk_buy_trading_pair'], 'type': 'buy', 'ordertype': 'market', 'oflags': 'fciq', 'volume': bnb_btc_balance})
-                        if result['error']:
-                            raise Exception("Could not perform 'AddOrder' of type 'buy' in Kraken")
-                        logger.info(result)
+                # Binance trading pair ticker
+                bnb_tickers = bnb_exchange.get_orderbook_tickers()
+                bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == config['bnb_trading_pair'])
+                bnb_buy_price = bnb_ticker['bidPrice']
+                bnb_sell_price = bnb_ticker['askPrice']
+                logger.info(f"\nBINANCE => Market {config['bnb_trading_pair']}\nbuy price: {bnb_buy_price} - sell price: {bnb_sell_price}\n")
 
-                        # In Binance: Send XRP to Kraken
-                        # First get XRP balance
-                        bnb_xrp_balance_result = bnb_exchange.get_asset_balance(asset=config['bnb_base_currency'])
-                        if bnb_xrp_balance_result:
-                            bnb_xrp_balance = float(bnb_xrp_balance_result['free'])
-                        else:
-                            bnb_xrp_balance = 0.0
-                        logger.info(f"Binance's Balances\nXRP balance:{bnb_xrp_balance} \n")
-                        # Send XRP from Binance to Kraken
-                        result = bnb_exchange.withdraw(asset='XRP', address=config['krk_xrp_address'], addressTag=config['krk_xrp_address_tag'], amount=bnb_xrp_balance)
-                        if result:
-                            if not result['success']:
-                                raise Exception("Could not send XRP to Kraken")
-                        else:
-                            raise Exception("Could not send XRP to Kraken")
-                        logger.info(result)
+                buy_prices = {'krk': krk_buy_price, 'bnb': bnb_buy_price}
+                # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
+                max_buy_price_key = max(buy_prices, key=buy_prices.get)
+                max_buy_price = buy_prices[max_buy_price_key]
+                sell_prices = {'krk': krk_sell_price, 'bnb': bnb_sell_price}
+                # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
+                min_sell_price_key = min(sell_prices, key=sell_prices.get)
+                min_sell_price = sell_prices[min_sell_price_key]
+                logger.info(f"Max buy price -> {max_buy_price_key} = {max_buy_price}")
+                logger.info(f"Min sell price -> {min_sell_price_key} = {min_sell_price}")
+                logger.info(f"{config['bnb_trading_pair']} Max(buy price) - Min(sell price) = {float(max_buy_price) - float(min_sell_price)}\n")
 
-                        # In Kraken: buy XRP with BTC
-                        # First get BTC Balance
-                        krk_balance = krk_exchange.query_private('Balance')
-                        krk_base_currency_available = 0
-                        if config['krk_base_currency'] in krk_balance['result']:
-                            krk_base_currency_available = krk_balance['result'][config['krk_base_currency']]
-                        krk_tickers = krk_exchange.query_public("Ticker", {'pair': config['krk_buy_trading_pair_step2']})['result'][config['krk_buy_trading_pair_step2']]
-                        krk_buy_price = krk_tickers['b'][0]
-                        krk_xrp_volume = round(float(krk_base_currency_available) / float(krk_buy_price), 8)
+                # Pair2
+                # Kraken trading pair2 ticker
+                # krk_tickers = krk_exchange.query_public("Ticker", {'pair': config['krk_trading_pair2']})['result'][config['krk_trading_pair2']]
+                # krk_buy_price2 = krk_tickers['b'][0]
+                # krk_sell_price2 = krk_tickers['a'][0]
+                # krk_high2 = krk_tickers['h'][0]
+                # krk_low2 = krk_tickers['l'][0]
+                # logger.info(f"\nKRAKEN => Market {config['krk_trading_pair2']}\nbuy price: {krk_buy_price2} - sell price: {krk_sell_price2} <> low: {krk_low2} - high: {krk_high2}\n")
+                #
+                # # Binance trading pair2 ticker
+                # bnb_tickers = bnb_exchange.get_orderbook_tickers()
+                # bnb_ticker = next(item for item in bnb_tickers if item['symbol'] == config['bnb_trading_pair2'])
+                # bnb_buy_price2 = bnb_ticker['bidPrice']
+                # bnb_sell_price2 = bnb_ticker['askPrice']
+                # logger.info(f"\nBINANCE => Market {config['bnb_trading_pair2']}\nbuy price: {bnb_buy_price2} - sell price: {bnb_sell_price2}\n")
+                #
+                # buy_prices2 = {'krk': krk_buy_price2, 'bnb': bnb_buy_price2}
+                # # buy_prices = {'cdc': cdc_buy_price, 'krk': krk_buy_price, 'bnb': bnb_buy_price}
+                # max_buy_price_key2 = max(buy_prices2, key=buy_prices2.get)
+                # max_buy_price2 = buy_prices2[max_buy_price_key2]
+                # sell_prices2 = {'krk': krk_sell_price2, 'bnb': bnb_sell_price2}
+                # # sell_prices = {'cdc': cdc_sell_price, 'krk': krk_sell_price, 'bnb': bnb_sell_price}
+                # min_sell_price_key2 = min(sell_prices2, key=sell_prices2.get)
+                # min_sell_price2 = sell_prices2[min_sell_price_key2]
+                # logger.info(f"Max buy price -> {max_buy_price_key2} = {max_buy_price2}")
+                # logger.info(f"Min sell price -> {min_sell_price_key2} = {min_sell_price2}")
+                # logger.info(f"BTCDAI Max(buy price) - Min(sell price) = {float(max_buy_price2) - float(min_sell_price2)}\n")
 
-                        result = krk_exchange.query_private('AddOrder', {'pair': config['krk_buy_trading_pair_step2'], 'type': 'buy', 'ordertype': 'market', 'oflags': 'fciq', 'volume': krk_xrp_volume})
-                        if result['error']:
-                            raise Exception("Could not buy XRP with BTC in Kraken: {}".format(result['error']))
-                        logger.info(result)
+                diff = (float(max_buy_price) - float(min_sell_price))
+                # diff2 = (float(max_buy_price2) - float(min_sell_price2))
 
-                        #  Send XRP amount from Kraken to Binance
-                        krk_balance = krk_exchange.query_private('Balance')
-                        krk_xrp_volume = 0
-                        if 'XXRP' in krk_balance['result']:
-                            krk_xrp_volume = krk_balance['result']['XXRP']
-                        result = krk_exchange.query_private('Withdraw', {'asset': 'XXRP', 'key': config['krk_bnb_xrp_address_key'], 'amount': krk_xrp_volume})
+                # Create list of potential opportunities
+                opportunity_list = [{'diff': diff, 'trading_pair_config_suffix': '', 'max_buy_price_key': max_buy_price_key, 'min_sell_price_key': min_sell_price_key}]
+                                    # {'diff': diff2, 'trading_pair_config_suffix': '2', 'max_buy_price_key': max_buy_price_key2, 'min_sell_price_key': min_sell_price_key2}]
+                # Sort list by diff descending
+                sorted_opportunity_list = sorted(opportunity_list, key=lambda k: k['diff'], reverse=True)
 
-                        # Wait until withdrawals are complete (should be max 4 mins for XRP transfers)
-                        # Give withdrawals some time to do their thing
-                        await asyncio.sleep(10)
-                        tries = 0
-                        waiting = True
-                        while tries < 50 and waiting:
-                            tries =+ 1
-                            # Get XRP balance in Kraken
-                            krk_balance = krk_exchange.query_private('Balance')
-                            krk_xrp_volume_from_bnb = 0
-                            if 'XXRP' in krk_balance['result']:
-                                krk_xrp_volume_from_bnb = krk_balance['result']['XXRP']
-                            # Get XRP balance in Binance
-                            bnb_xrp_balance_result = bnb_exchange.get_asset_balance(asset='XRP')
-                            if bnb_xrp_balance_result:
-                                bnb_xrp_balance_from_krk = float(bnb_xrp_balance_result['free'])
-                            else:
-                                bnb_xrp_balance_from_krk = 0.0
-                            Waiting = (krk_xrp_volume_from_bnb + 100.0) > bnb_xrp_balance and (bnb_xrp_balance_from_krk + 100.0) > krk_xrp_volume
-                            await asyncio.sleep(10)
+                # Prnt sorted_opportunity_list for reference
+                logger.info("Sorted Opportunity list:\n")
+                for item in sorted_opportunity_list:
+                    logger.info(f'{item}')
 
-                        # in Binance sell XRP to buy BTC
-                        bnb_xrp_balance_result = bnb_exchange.get_asset_balance(asset='XRP')
-                        if bnb_xrp_balance_result:
-                            bnb_xrp_balance = float(bnb_xrp_balance_result['free'])
-                        else:
-                            bnb_xrp_balance = 0.0
-                        # bnb_xrp_balance = round(bnb_xrp_balance, 3)
-                        logger.info(f"Binance's Balances\nXRP balance:{bnb_xrp_balance} \n")
+                for item in sorted_opportunity_list:
+                    if item['diff'] >= 250.0:
+                        if not config['safe_mode_on']:
+                            try:
+                                # Set trading pair accordingly
+                                bnb_trading_pair = config['bnb_trading_pair' + item['trading_pair_config_suffix']]
+                                krk_trading_pair = config['krk_trading_pair' + item['trading_pair_config_suffix']]
 
-                        # Market order to buy XRP with BTC in Binance
-                        result = bnb_exchange.order_market_sell(symbol=config['bnb_buy_trading_pair'], quantity=int(bnb_xrp_balance))
-                        if result:
-                            if result['status'] != "FILLED":
-                                raise Exception("Could not sell BTC for XRP in Binance: {}".format(result))
-                        else:
-                            raise Exception("Could not sell BTC for XRP in Binance")
-                        logger.info(result)
+                                # Make orders
+                                if item['max_buy_price_key'] == 'bnb' and item['min_sell_price_key'] == 'krk':
+                                    if item['trading_pair_config_suffix'] == '':
+                                        opportunities_BTCEUR_250_BNB_KRK += 1
+                                    elif item['trading_pair_config_suffix'] == '2':
+                                        opportunities_BTCDAI_250_BNB_KRK += 1
+                                    # Market order to sell BTC in Binance
+                                    result = bnb_exchange.order_market_sell(symbol=bnb_trading_pair, quantity=config['trade_amount'])
+                                    if result:
+                                        if result['status'] != "FILLED":
+                                            raise Exception("Could not sell '{}' in pair '{}' in Binance. Status => {}".format(config['trade_amount'], bnb_trading_pair, result['status']))
+                                    else:
+                                        raise Exception("Could not sell '{}' in pair '{}' in Binance.".format(config['trade_amount'], bnb_trading_pair))
+                                    logger.info(result)
 
-                        # In Kraken: sell XRP to buy EUR
-                        krk_balance = krk_exchange.query_private('Balance')
-                        krk_xrp_volume = 0
-                        if 'XXRP' in krk_balance['result']:
-                            krk_xrp_volume = krk_balance['result']['XXRP']
-                        result = krk_exchange.query_private('AddOrder', {'pair': config['krk_buy_trading_pair_step3'], 'type': 'sell', 'ordertype': 'market', 'oflags': 'fciq', 'volume': krk_xrp_volume})
-                        if result['error']:
-                            raise Exception("Could not buy BTC with EUR in Kraken: {}".format(result))
-                        logger.info(result)
-                    except Exception as e:
-                        logger.info(traceback.format_exc())
-                        logger.info("\nException occurred -> '{}'. Waiting for next iteration... ({} seconds)\n\n\n".format(e, config['seconds_between_iterations']))
+                                    # Market order to buy the same amount of pair in Kraken
+                                    result = krk_exchange.query_private('AddOrder', {'pair': krk_trading_pair, 'type': 'buy', 'ordertype': 'market', 'oflags': 'fciq', 'volume': config['trade_amount']})
+                                    if result['error']:
+                                        raise Exception("Could not buy '{}' in pair '{}' in Kraken: {}".format(config['trade_amount'], krk_trading_pair, result['error']))
+                                    logger.info(result)
+
+                                    # Kraken: Get my balances
+                                    kraken_balances = get_kraken_balances(krk_exchange, config)
+                                    logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Target) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
+
+                                    # Binance: Get my balances
+                                    binance_balances = get_binance_balances(bnb_exchange, config)
+                                    logger.info(f"Binance's Balances\n(Base) {config['bnb_base_currency']} balance:{binance_balances['bnb_base_currency_available']} \n(Target) {config['bnb_target_currency']} balance:{binance_balances['bnb_target_currency_available']}\n")
+
+                                elif item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
+                                    # krk_balance = krk_exchange.query_private('Balance')
+                                    # krk_base_currency_available = 0
+                                    # if config['krk_base_currency'] in krk_balance['result']:
+                                    #     krk_base_currency_available = krk_balance['result'][config['krk_base_currency']]
+                                    # krk_base_currency_available = 0.001
+                                    # krk_tickers = krk_exchange.query_public("Ticker", {'pair': config['krk_buy_trading_pair_step2']})['result'][config['krk_buy_trading_pair_step2']]
+                                    # krk_buy_price = krk_tickers['b'][0]
+                                    # krk_xrp_volume = round(float(krk_base_currency_available) / float(krk_buy_price), 8)
+
+                                    if item['trading_pair_config_suffix'] == '':
+                                        opportunities_BTCEUR_250_KRK_BNB += 1
+                                    elif item['trading_pair_config_suffix'] == '2':
+                                        opportunities_BTCDAI_250_KRK_BNB += 1
+
+                                    # Market order to sell pair in Kraken
+                                    result = krk_exchange.query_private('AddOrder', {'pair': krk_trading_pair, 'type': 'sell', 'ordertype': 'market', 'oflags': 'fciq', 'volume': config['trade_amount']})
+                                    if result['error']:
+                                        raise Exception("Could not sell '{}' in pair '{}' in Kraken: {}".format(config['trade_amount'], krk_trading_pair, result['error']))
+                                    logger.info(result)
+
+                                    # Market order to buy the same amount of pair in Binance
+                                    result = bnb_exchange.order_market_buy(symbol=bnb_trading_pair, quantity=config['trade_amount'])
+                                    if result:
+                                        if result['status'] != "FILLED":
+                                            raise Exception("Could not buy '{}' in pair '{}' in Binance. Status => {}".format(config['trade_amount'], bnb_trading_pair, result['status']))
+                                    else:
+                                        raise Exception("Could not buy '{}' in pair '{}' in Binance.".format(config['trade_amount'], bnb_trading_pair))
+                                    logger.info(result)
+
+                                    # Kraken: Get my balances
+                                    kraken_balances = get_kraken_balances(krk_exchange, config)
+                                    logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Target) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
+
+                                    # Binance: Get my balances
+                                    binance_balances = get_binance_balances(bnb_exchange, config)
+                                    logger.info(f"Binance's Balances\n(Base) {config['bnb_base_currency']} balance:{binance_balances['bnb_base_currency_available']} \n(Target) {config['bnb_target_currency']} balance:{binance_balances['bnb_target_currency_available']}\n")
 
 
+                                # Wait 20 seconds more to exchanges to properly complete trades...
+                                # await asyncio.sleep(20)
 
-            elif 120.0 <= diff < 175.0:
-                opportunities120 += 1
+                            except Exception as e:
+                                logger.info(traceback.format_exc())
+                                # logger.info("\nException occurred -> '{}'. Waiting for next iteration... ({} seconds)\n\n\n".format(e, config['seconds_between_iterations']))
 
-            opportunities = {'Opportunities175': opportunities175,
-                             'Opportunities120': opportunities120}
+                                # Kraken: Get my balances
+                                kraken_balances = get_kraken_balances(krk_exchange, config)
+                                logger.info(f"Kraken's Balances\n(Base) {config['krk_base_currency']} balance:{kraken_balances['krk_base_currency_available']} \n(Target) {config['krk_target_currency']} balance:{kraken_balances['krk_target_currency_available']}\n")
 
-            for key, value in opportunities.items():
-                logger.info(f'{key} = {value}')
+                                # Binance: Get my balances
+                                binance_balances = get_binance_balances(bnb_exchange, config)
+                                logger.info(f"Binance's Balances\n(Base) {config['bnb_base_currency']} balance:{binance_balances['bnb_base_currency_available']} \n(Target) {config['bnb_target_currency']} balance:{binance_balances['bnb_target_currency_available']}\n")
 
-            print(f'------------ Iteration {iteration} ------------\n')
+                                # Continue to next opportunity
+                                continue
+
+
+                    elif 50.0 <= diff < 250.0:
+                        if item['max_buy_price_key'] == 'bnb' and item['min_sell_price_key'] == 'krk':
+                            if item['trading_pair_config_suffix'] == '':
+                                opportunities_BTCEUR_50_BNB_KRK += 1
+                            elif item['trading_pair_config_suffix'] == '2':
+                                opportunities_BTCDAI_50_BNB_KRK += 1
+                        elif item['max_buy_price_key'] == 'krk' and item['min_sell_price_key'] == 'bnb':
+                            if item['trading_pair_config_suffix'] == '':
+                                opportunities_BTCEUR_50_KRK_BNB += 1
+                            elif item['trading_pair_config_suffix'] == '2':
+                                opportunities_BTCDAI_50_KRK_BNB += 1
+
+                opportunities = {'opportunities_BTCEUR_250_BNB-KRK': opportunities_BTCEUR_250_BNB_KRK,
+                                 'opportunities_BTCEUR_250_KRK_KRK': opportunities_BTCEUR_250_KRK_BNB,
+                                 'opportunities_BTCEUR_50_BNB_KRK': opportunities_BTCEUR_50_BNB_KRK,
+                                 'opportunities_BTCEUR_50_KRK_BNB': opportunities_BTCEUR_50_KRK_BNB}
+                                 # 'opportunities_BTCDAI_250_BNB_KRK': opportunities_BTCDAI_250_BNB_KRK,
+                                 # 'opportunities_BTCDAI_250_KRK_BNB': opportunities_BTCDAI_250_KRK_BNB,
+                                 # 'opportunities_BTCDAI_50_BNB_KRK': opportunities_BTCDAI_50_BNB_KRK,
+                                 # 'opportunities_BTCDAI_50_KRK_BNB': opportunities_BTCDAI_50_KRK_BNB}
+
+                for key, value in opportunities.items():
+                    logger.info(f'{key} = {value}')
+
+            else: # if exchanges_are_up:
+                logger.info("One of the exchanges was down or under maintenance!")
+
+            logger.info(f'------------ Iteration {iteration} ------------\n')
+
             if config['test_mode_on']:
                 await asyncio.sleep(1)
                 break
@@ -249,7 +298,9 @@ async def main():
                 # Wait given seconds until next poll
                 logger.info("Waiting for next iteration... ({} seconds)\n\n\n".format(config['seconds_between_iterations']))
                 await asyncio.sleep(config['seconds_between_iterations'])
+
         except Exception as e:
+            # logger.info(traceback.format_exc())
             # Network issue(s) occurred (most probably). Jumping to next iteration
             logger.info("Exception occurred -> '{}'. Waiting for next iteration... ({} seconds)\n\n\n".format(e, config['seconds_between_iterations']))
             await asyncio.sleep(config['seconds_between_iterations'])
@@ -297,6 +348,40 @@ def check_config(data):
         print("Kraken's Trading pair '{}' does not exist (check your config_file)".format(data['krk_trading_pair']))
         sys.exit(1)
     print('All options looking good\n')
+
+def get_kraken_balances(exchange, config):
+    krk_balance = exchange.query_private('Balance')
+    krk_base_currency_available = 0
+    if config['krk_base_currency'] in krk_balance['result']:
+        krk_base_currency_available = krk_balance['result'][config['krk_base_currency']]
+    # Kraken: Get my target currency balance
+    krk_target_currency_available = 0
+    if config['krk_target_currency'] in krk_balance['result']:
+        krk_target_currency_available = krk_balance['result'][config['krk_target_currency']]
+    return ({'krk_base_currency_available': krk_base_currency_available, 'krk_target_currency_available': krk_target_currency_available})
+
+def get_binance_balances(exchange, config):
+    bnb_balance_result = exchange.get_asset_balance(asset=config['bnb_base_currency'])
+    if bnb_balance_result:
+        bnb_base_currency_available = float(bnb_balance_result['free'])
+    else:
+        bnb_base_currency_available = 0.0
+    bnb_balance_result = exchange.get_asset_balance(asset=config['bnb_target_currency'])
+    if bnb_balance_result:
+        bnb_target_currency_available = float(bnb_balance_result['free'])
+    else:
+        bnb_target_currency_available = 0.0
+    return ({'bnb_base_currency_available': bnb_base_currency_available, 'bnb_target_currency_available': bnb_target_currency_available})
+
+def exchanges_up(krk, bnb):
+    krk_up_result = krk.query_public('SystemStatus')
+    krk_up = krk_up_result['result'] and krk_up_result['result']['status'] == 'online'
+
+    bnb_up_result = bnb.get_system_status()
+    bnb_up = bnb_up_result and bnb_up_result['status'] == 0 # binance api docs -> 0=normal; 1=system maintenance
+
+    return krk_up and bnb_up
+
 
 def setupLogger(log_filename):
     logger = logging.getLogger('CN')
